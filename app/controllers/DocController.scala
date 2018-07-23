@@ -1,30 +1,31 @@
 package controllers
 
 import javax.inject.{Inject, Singleton}
+import model.Doc
+import play.api.Logger
+import play.api.libs.json.Json
+import play.api.libs.ws.JsonBodyWritables.writeableOf_JsValue
 import play.api.libs.ws.WSClient
-import play.api.mvc.{AbstractController, ControllerComponents}
-import services.Counter
+import play.api.mvc.{AbstractController, AnyContent, ControllerComponents, Request}
 
-/**
-  * This controller demonstrates how to use dependency injection to
-  * bind a component into a controller class. The class creates an
-  * `Action` that shows an incrementing count to users. The [[Counter]]
-  * object is injected by the Guice dependency injection system.
-  */
+import scala.concurrent.ExecutionContext
+
 @Singleton
-class DocController @Inject()(cc: ControllerComponents, ws: WSClient) extends AbstractController(cc) {
+class DocController @Inject()(val cc: ControllerComponents,
+                              implicit val ec: ExecutionContext,
+                              ws: WSClient,
+                              val reactiveMongoApi: ReactiveMongoApi) extends AbstractController(cc) {
 
-  /**
-    * Create an action that responds with the [[Counter]]'s current
-    * count. The result is plain text. This `Action` is mapped to
-    * `GET /count` requests by an entry in the `routes` config file.
-    */
-  def create = Action {
-    ws.url("localhost:9200").post()
-    Created("ok, cool")
+  def create = Action { implicit request: Request[AnyContent] =>
+    val jsonBody = request.body.asJson.get
+    Logger.info("Request is: " + jsonBody)
+    val doc: Doc = Json.fromJson[Doc](jsonBody).get
+    ws.url("http://localhost:9200/simpledoc/_doc").post(Json.toJson(doc))
+      .foreach(res => Logger.info("Response: " + res.body))
+    Created
   }
 
   def get(id: Long) = Action {
-    Ok("here you go")
+    Ok
   }
 }
