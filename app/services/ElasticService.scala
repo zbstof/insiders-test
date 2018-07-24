@@ -13,4 +13,18 @@ class ElasticService @Inject()(val ws: WSClient)(implicit val ec: ExecutionConte
   def send(enrichedWithId: Doc): Future[WSResponse] = {
     ws.url("http://localhost:9200/docs/_doc").post(Json.toJson(dto.DocDto.from(enrichedWithId)))
   }
+
+  def search(namePattern: String): Future[WSResponse] = {
+    ws.url("http://localhost:9200/docs/_doc/_search")
+      .withMethod("GET")
+      .withBody(Json.parse(
+        s"""
+          |{
+          |    "query" : {
+          |        "term" : { "name" : "$namePattern" }
+          |    }
+          |}
+        """.stripMargin))
+      .execute()
+  }
 }
