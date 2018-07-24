@@ -1,4 +1,4 @@
 POST    /docs                       controllers.DocController.create
-GET     /docs/:id                   controllers.DocController.get(id: Long)
+GET     /docs/:id                   controllers.DocController.get(id: String)
 
       

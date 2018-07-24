@@ -12,7 +12,7 @@ libraryDependencies ++= Seq(
   ws,
   specs2 % Test,
   guice,
-  "org.reactivemongo" %% "play2-reactivemongo" % "0.11.14")
+  "org.reactivemongo" %% "play2-reactivemongo" % "0.15.0-play26")
 
 unmanagedResourceDirectories in Test <+= baseDirectory(_ / "target/web/public/test")
 

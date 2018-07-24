@@ -1,31 +1,46 @@
 package controllers
 
+import dao.DocDao
 import javax.inject.{Inject, Singleton}
-import model.Doc
 import play.api.Logger
-import play.api.libs.json.Json
-import play.api.libs.ws.JsonBodyWritables.writeableOf_JsValue
-import play.api.libs.ws.WSClient
-import play.api.mvc.{AbstractController, AnyContent, ControllerComponents, Request}
+import play.api.libs.json.{JsPath, Json, JsonValidationError}
+import play.api.mvc.{AbstractController, Action, AnyContent, ControllerComponents, Request}
+import services.ElasticService
 
 import scala.concurrent.ExecutionContext
 
 @Singleton
 class DocController @Inject()(val cc: ControllerComponents,
-                              implicit val ec: ExecutionContext,
-                              ws: WSClient,
-                              val reactiveMongoApi: ReactiveMongoApi) extends AbstractController(cc) {
+                              val dao: DocDao,
+                              val elastic: ElasticService)
+                             (implicit val ec: ExecutionContext) extends AbstractController(cc) {
 
   def create = Action { implicit request: Request[AnyContent] =>
-    val jsonBody = request.body.asJson.get
-    Logger.info("Request is: " + jsonBody)
-    val doc: Doc = Json.fromJson[Doc](jsonBody).get
-    ws.url("http://localhost:9200/simpledoc/_doc").post(Json.toJson(doc))
-      .foreach(res => Logger.info("Response: " + res.body))
-    Created
+    val dtoDoc: dto.Doc = Json.fromJson[dto.Doc](request.body.asJson.get).asEither match {
+      case Right(value) => value
+      case Left(errs: Seq[(JsPath, Seq[JsonValidationError])]) =>
+        throw new IllegalArgumentException("Bad request: " + errs.last)}
+
+    val enrichedWithId: model.Doc = model.Doc.from(dtoDoc)
+    Logger.info("Enriched: " + enrichedWithId)
+
+    dao.create(enrichedWithId)
+      .flatMap(_ => elastic.send(enrichedWithId))
+    Created(Json.toJson(dto.Doc.from(enrichedWithId)))
   }
 
-  def get(id: Long) = Action {
-    Ok
+
+  def get(id: String): Action[AnyContent] = Action.async {
+    dao.read(id)
+      .map((maybeRes: Option[model.Doc]) => {
+        maybeRes match {
+          case Some(res) => {
+            Logger.info("Mongo: " + res)
+            Ok(Json.toJson(dto.Doc.from(res)))
+          }
+          case None => throw new IllegalArgumentException("Not found: " + id)
+        }
+      })
   }
+
 }

@@ -1,13 +1,26 @@
 package model
 
-import play.api.libs.json.{Format, Json, Reads, Writes}
+import reactivemongo.bson.{BSONDocument, BSONDocumentReader, BSONDocumentWriter, BSONObjectID}
 
-case class Doc(name: String)
+case class Doc(id: BSONObjectID, name: String)
 
 object Doc {
-  implicit val format: Format[Doc] = Json.format[Doc]
+  implicit object Reader extends BSONDocumentReader[Doc] {
+    override def read(bson: BSONDocument): Doc =
+      Doc(
+        id = bson.getAs[BSONObjectID]("_id").get,
+        name = bson.getAs[String]("name").get
+      )
+  }
 
-  implicit val writes: Writes[Doc] = Json.writes[Doc]
+  implicit object Writer extends BSONDocumentWriter[Doc] {
+    override def write(doc: Doc): BSONDocument =
+      BSONDocument(
+        "_id" -> doc.id,
+        "name" -> doc.name
+      )
+  }
 
-  implicit val reads: Reads[Doc] = Json.reads[Doc]
+  def from(dtoDoc: dto.Doc): Doc =
+    Doc(dtoDoc.id.flatMap(BSONObjectID.parse(_).toOption).getOrElse(BSONObjectID.generate()), dtoDoc.name)
 }
