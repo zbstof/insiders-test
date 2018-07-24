@@ -21,6 +21,6 @@ object Doc {
       )
   }
 
-  def from(dtoDoc: dto.Doc): Doc =
+  def from(dtoDoc: dto.DocDto): Doc =
     Doc(dtoDoc.id.flatMap(BSONObjectID.parse(_).toOption).getOrElse(BSONObjectID.generate()), dtoDoc.name)
 }

@@ -11,6 +11,6 @@ import scala.concurrent.{ExecutionContext, Future}
 class ElasticService @Inject()(val ws: WSClient)(implicit val ec: ExecutionContext) {
 
   def send(enrichedWithId: Doc): Future[WSResponse] = {
-    ws.url("http://localhost:9200/docs/_doc").post(Json.toJson(dto.Doc.from(enrichedWithId)))
+    ws.url("http://localhost:9200/docs/_doc").post(Json.toJson(dto.DocDto.from(enrichedWithId)))
   }
 }
