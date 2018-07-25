@@ -26,15 +26,12 @@ EC2 t2.micro instance.
 
     curl -X POST \
       http://<INSTANCE_DNS_NAME>:9000/docs \
-      -H 'Accept: application/json' \
       -H 'Content-Type: application/json' \
-      -d '{
-    	"name": "hello mr. test"
-    }'
+      -d '{ "name": "hello mr. test" }'
     
-    curl -X GET http://<INSTANCE_DNS_NAME>:9000/docs/<RETURNED_ID>
+    curl http://<INSTANCE_DNS_NAME>:9000/docs/<RETURNED_ID>
     
-    curl -X GET 'http://localhost:9000/docs?name=hello'
+    curl http://<INSTANCE_DNS_NAME>:9000/docs?name=hello
     
 # Running outside docker container
 
