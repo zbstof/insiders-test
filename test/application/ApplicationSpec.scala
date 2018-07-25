@@ -14,7 +14,7 @@ class ApplicationSpec extends PlaySpecification with ShouldMatchers {
     "be possible to create doc" in new WithServer {
       val ws: WSClient = app.injector.instanceOf(classOf[WSClient])
 
-      private val creationResponse: WSResponse = await(ws.url(s"http://localhost:$testServerPort/docs").post(Json.parse("""{"name": "hello darling"}""")))
+      private val creationResponse: WSResponse = await(ws.url(url).post(Json.parse("""{"name": "hello darling"}""")))
 
       creationResponse.status must equalTo(CREATED)
       value(creationResponse, "name") must equalTo(JsString("hello darling"))
@@ -22,10 +22,10 @@ class ApplicationSpec extends PlaySpecification with ShouldMatchers {
 
     "be possible to get doc by id" in new WithServer {
       val ws: WSClient = app.injector.instanceOf(classOf[WSClient])
-      private val creationResponse: WSResponse = await(ws.url(s"http://localhost:$testServerPort/docs").post(Json.parse("""{"name": "hello darling"}""")))
+      private val creationResponse: WSResponse = await(ws.url(url).post(Json.parse("""{"name": "hello darling"}""")))
       val id: String = value(creationResponse, "id").as[JsString].value
 
-      val retrievalResponse: WSResponse = await(ws.url(s"http://localhost:$testServerPort/docs/$id").get())
+      val retrievalResponse: WSResponse = await(ws.url(s"$url/$id").get())
 
       retrievalResponse.status must equalTo(OK)
       value(retrievalResponse, "name") must equalTo(JsString("hello darling"))
@@ -34,14 +34,18 @@ class ApplicationSpec extends PlaySpecification with ShouldMatchers {
 
     "be possible to search by name" in new WithServer {
       val ws: WSClient = app.injector.instanceOf(classOf[WSClient])
-      await(ws.url(s"http://localhost:$testServerPort/docs").post(Json.parse("""{"name": "hello baby"}""")))
-      await(ws.url(s"http://localhost:$testServerPort/docs").post(Json.parse("""{"name": "hello darling"}""")))
+      await(ws.url(url).post(Json.parse("""{"name": "hello baby"}""")))
+      await(ws.url(url).post(Json.parse("""{"name": "hello darling"}""")))
 
-      private val searchResponse: WSResponse = await(ws.url(s"http://localhost:$testServerPort/docs?name=hello").get())
+      private val searchResponse: WSResponse = await(ws.url(s"$url?name=hello").get())
 
       searchResponse.status must equalTo(OK)
       Json.parse(searchResponse.body) \\ "_source" map (_ \ "name" get) must contain[JsValue](JsString("hello darling"), JsString("hello baby"))
     }
+  }
+
+  private def url: String = {
+    s"http://localhost:$testServerPort/docs"
   }
 
   private def value(response: WSResponse, field: String): JsValue = {
